@@ -59,10 +59,33 @@ jobs:
     - name: Download and patch task definition
       run: |
         aws ecs describe-task-definition --task-definition sumeetai-task --query taskDefinition > task-def.json
-        # Remove fields that prevent registering a new revision
         jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' task-def.json > clean-task-def.json
-        # Add new environment variables to agent container
-        jq '(.containerDefinitions[] | select(.name == "agent") | .environment) += [{"name": "AUTH_SERVICE", "value": "http://localhost:8001"}, {"name": "CHAT_SERVICE", "value": "http://localhost:8002"}, {"name": "MONGODB_URI", "value": "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0"}]' clean-task-def.json > final-task-def.json
+        
+        cat << 'EOF' > patch.js
+        const fs = require('fs');
+        const def = JSON.parse(fs.readFileSync('clean-task-def.json'));
+        
+        const redisUrl = { name: "REDIS_URL", value: "redis://default:5oEqyh8TDuUCpBC6BfzZXsGTNUgLwiOL@sea-fog-meadow-85620.db.redis.io:18023" };
+        const authService = { name: "AUTH_SERVICE", value: "http://localhost:8001" };
+        const chatService = { name: "CHAT_SERVICE", value: "http://localhost:8002" };
+        const mongoUri = { name: "MONGODB_URI", value: "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0" };
+        
+        def.containerDefinitions.forEach(c => {
+            if (!c.environment) c.environment = [];
+            const envKeys = c.environment.map(e => e.name);
+            
+            if ((c.name === 'gateway' || c.name === 'auth' || c.name === 'billing') && !envKeys.includes('REDIS_URL')) c.environment.push(redisUrl);
+            
+            if (c.name === 'agent') {
+                if (!envKeys.includes('AUTH_SERVICE')) c.environment.push(authService);
+                if (!envKeys.includes('CHAT_SERVICE')) c.environment.push(chatService);
+                if (!envKeys.includes('MONGODB_URI')) c.environment.push(mongoUri);
+            }
+        });
+        
+        fs.writeFileSync('final-task-def.json', JSON.stringify(def, null, 2));
+        EOF
+        node patch.js
 
     - name: Fill in the new gateway image ID in the Amazon ECS task definition
       id: task-def-gateway
