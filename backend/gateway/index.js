@@ -1,43 +1,101 @@
 import express from "express"
 import dotenv from "dotenv"
-import proxy from "express-http-proxy"
 dotenv.config()
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import { getCurrentUser } from "./controllers/user.controller.js"
 import protect from "./middleware/auth.middleware.js"
-import { proxyWithHeader } from "./utils/proxyWithHeader.js"
 import morgan from "morgan"
-const port =process.env.PORT
+import { createProxyMiddleware } from "http-proxy-middleware"
 
-const app=express()
+const port = process.env.PORT
+
+const app = express()
 app.use(cors({
-    origin:process.env.FRONTEND_URL,
-    credentials:true
+    origin: process.env.FRONTEND_URL,
+    credentials: true
 }))
 app.use(morgan("dev"))
 app.use(cookieParser())
-app.use("/api/auth",proxy(process.env.AUTH_SERVICE, { parseReqBody: false }))
-app.use("/api/chat",protect,proxyWithHeader(process.env.CHAT_SERVICE, { parseReqBody: false }))
-app.use("/api/agent",protect,proxyWithHeader(process.env.AGENT_SERVICE, { parseReqBody: false }))
-app.use("/api/billing",protect,proxyWithHeader(process.env.BILLING_SERVICE, { parseReqBody: false }))
-app.get("/api/me",protect,getCurrentUser)
-app.get("/",(req,res)=>{
-    res.json({message:"hello from gateway v5"})
+
+// Auth - no body parsing, pure proxy
+app.use("/api/auth", createProxyMiddleware({
+    target: process.env.AUTH_SERVICE,
+    changeOrigin: true,
+    pathRewrite: { "^/api/auth": "" },
+    on: {
+        error: (err, req, res) => {
+            console.error("Auth proxy error:", err)
+            res.status(502).json({ message: "Auth service unavailable" })
+        }
+    }
+}))
+
+// Chat - requires auth, forwards user id
+app.use("/api/chat", protect, createProxyMiddleware({
+    target: process.env.CHAT_SERVICE,
+    changeOrigin: true,
+    pathRewrite: { "^/api/chat": "" },
+    on: {
+        proxyReq: (proxyReq, req) => {
+            if (req.user) {
+                proxyReq.setHeader("x-user-id", req.user.userId)
+            }
+        },
+        error: (err, req, res) => {
+            console.error("Chat proxy error:", err)
+            res.status(502).json({ message: "Chat service unavailable" })
+        }
+    }
+}))
+
+// Agent - requires auth, forwards user id
+app.use("/api/agent", protect, createProxyMiddleware({
+    target: process.env.AGENT_SERVICE,
+    changeOrigin: true,
+    pathRewrite: { "^/api/agent": "" },
+    on: {
+        proxyReq: (proxyReq, req) => {
+            if (req.user) {
+                proxyReq.setHeader("x-user-id", req.user.userId)
+            }
+        },
+        error: (err, req, res) => {
+            console.error("Agent proxy error:", err)
+            res.status(502).json({ message: "Agent service unavailable" })
+        }
+    }
+}))
+
+// Billing - requires auth, forwards user id
+app.use("/api/billing", protect, createProxyMiddleware({
+    target: process.env.BILLING_SERVICE,
+    changeOrigin: true,
+    pathRewrite: { "^/api/billing": "" },
+    on: {
+        proxyReq: (proxyReq, req) => {
+            if (req.user) {
+                proxyReq.setHeader("x-user-id", req.user.userId)
+            }
+        },
+        error: (err, req, res) => {
+            console.error("Billing proxy error:", err)
+            res.status(502).json({ message: "Billing service unavailable" })
+        }
+    }
+}))
+
+app.get("/api/me", protect, getCurrentUser)
+app.get("/", (req, res) => {
+    res.json({ message: "hello from gateway v6" })
 })
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error("Global Gateway Error:", err);
-    return res.status(err.status || 500).json({ message: err.message });
-});
+    console.error("Global Gateway Error:", err)
+    return res.status(err.status || 500).json({ message: err.message })
+})
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error("Global Gateway Error:", err);
-    return res.status(err.status || 500).json({ message: err.message });
-});
-
-app.listen(port,()=>{
+app.listen(port, () => {
     console.log(`gateway started at ${port}`)
 })
