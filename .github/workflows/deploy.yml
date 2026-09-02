@@ -69,12 +69,15 @@ jobs:
         const authService = { name: "AUTH_SERVICE", value: "http://localhost:8001" };
         const chatService = { name: "CHAT_SERVICE", value: "http://localhost:8002" };
         const mongoUri = { name: "MONGODB_URI", value: "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0" };
+        const gatewayPort = { name: "PORT", value: "8000" };
         
         def.containerDefinitions.forEach(c => {
             if (!c.environment) c.environment = [];
             const envKeys = c.environment.map(e => e.name);
             
             if ((c.name === 'gateway' || c.name === 'auth' || c.name === 'billing') && !envKeys.includes('REDIS_URL')) c.environment.push(redisUrl);
+            
+            if (c.name === 'gateway' && !envKeys.includes('PORT')) c.environment.push(gatewayPort);
             
             if (c.name === 'agent') {
                 if (!envKeys.includes('AUTH_SERVICE')) c.environment.push(authService);
