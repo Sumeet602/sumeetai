@@ -80,6 +80,9 @@ jobs:
         const billingService = { name: "BILLING_SERVICE", value: "http://localhost:8004" };
         const mongoUri = { name: "MONGODB_URI", value: "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0" };
         const gatewayPort = { name: "PORT", value: "8000" };
+        const firebaseProjectId = { name: "FIREBASE_PROJECT_ID", value: "sumeetai" };
+        const firebaseClientEmail = { name: "FIREBASE_CLIENT_EMAIL", value: "firebase-adminsdk-fbsvc@sumeetai.iam.gserviceaccount.com" };
+        const firebasePrivateKey = { name: "FIREBASE_PRIVATE_KEY", value: "-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC4TJQpo2rKU7sB\\nqlEsgPPPPwWlOnFMxE872WNI5OV/kpbNRqchOy1RcsPgJGN3NZ+21diwswZsUUtH\\nJupg33qlWCzjGxDuBRUQV3wANRdLMBcZoDwEPME/HAZsX1fCrQ0HhhCS7S2lgzNE\\n8s7LhBW5qe3MFlM8BuNEpAypnhddjLUxuulLqfcRV++NtyjvK6RsK/3ZWsHXr8Kk\\n2kq4CNntsorzIWpv2nbwdLd6O7nZimP4iLJB/ocJJpTp1q7XRqn+Jp+dwqaNX0pT\\nOFYHd5DvXHZ1ydd8djJTpsaEBC/ID2gr521/L3Hs2dcZSoLcxIpNq2s/DE0FAndZ\\n2el7nuWhAgMBAAECggEABpBmLMk67QnASOv2NAzD+kU9LAxNw6FgjdH1Xf/Wj3WS\\n8Mzf2CB3oc1xzeh34TOgDJLXYtw+eeJHmUk42vJMt8nBIAXbU5HrZROLmWWKrskv\\nwnA1QQShsJ/st+SJr3eqxZJEIfqH+BuZGm8gN8oMnMoxS7X+GQ7I/o1t/MbSX9ja\\n+urIF74kZ+AEK7j5XKc68pcfylbUkd1bfC/5LhPb5RrmnQXR/rmAlkdMYsm+E9Hj\\nIzP51e2ytRZEOhURB6/sUtKriqUeuyb8i0hG8oQng1TWfRNNy4DCU/gCTfbm1qAF\\nD8b5sy5YCQ/kr8neu+y0Pw1iLbncQ/YWwBXy0v/msQKBgQDzVUIR3RbjoKa8FBWO\\nX/CpjjaDXEOS6x62NnTCA4bdPDQ+/8zMgPoHzbL68Qfr3/3t51ovpymp+HpfnWxB\\nI90vbA2Zz4J0iGXb3djSVS+Zu3J+qoT3UMOCZsjUvoM2vQdzeN4dOVHQ+ycAeo0p\\nIzmar9MNxx9Sp5WKv5tnDvEOUQKBgQDB5J0yioJAiPIRe/WsZR5+p0BEzOEDpmPW\\nkcjoDeiR1yQNUj1+inMjGAx33RUHQIvGB7y9VQNrRHudlLaxztz1Jwy0v9TaCaqd\\nrZEB0uJiNIbSW07CtAfeIoB1V5139eZsTrw+GQubPNjOams6wCoKbKKeuey37AZS\\nSRrJQJX+UQKBgGnOi9EassY95+JmVU04WHxR01BhQRzUUeFnYnOudukiMZGnRxUx\\njAbyob3OKuSc3FyjOar44/v9iLCk0hqtDpN9R5i3C4HCgZAOMiabVfxh7pI3cWPc\\n4XaFXRRs1r9piKDkUKiicPoPC1GA+HqHz5d8lqgqCmu1ZSgU0u0IKTdRAoGBAKoI\\nUdKApLjzX1T13/vOsW9gPHwZLzqEMAl6zzSw/cLnaDZGaKcPwuiDrmtu9YHmmKyR\\nHHLsmpL2+3C1eYF0Z1CVbg8UKxUKZRThoMh4pw54AcN3TxpvxnaGyyAcNXt9qRRR\\n98J9NDBuq7JYoLBk1HlPy0xmv7CKywBeG59hhCgBAoGBANj578d4ypTbqWK8Pvy/\\n36TzkzJ0dSyGubFfc5lx7sPwje4dsKAJ6E1PQUIOnK8/bE1AjTGXwzNbmcsHyZI3\\nJ9ZuwAyFIv0jgnnNhIC4klGppjtlo5N/P3oYAY9wIEU15mJIvGrp/EOAm42ImUMY\\n1CWw7/m5iwOEfJcCtbcfHYW0\\n-----END PRIVATE KEY-----\\n" };
         
         def.containerDefinitions.forEach(c => {
             if (!c.environment) c.environment = [];
@@ -95,6 +98,13 @@ jobs:
                 if (!envKeys.includes('CHAT_SERVICE')) c.environment.push(chatService);
                 if (!envKeys.includes('AGENT_SERVICE')) c.environment.push(agentService);
                 if (!envKeys.includes('BILLING_SERVICE')) c.environment.push(billingService);
+            }
+            
+            // Auth needs Firebase credentials
+            if (c.name === 'auth') {
+                if (!envKeys.includes('FIREBASE_PROJECT_ID')) c.environment.push(firebaseProjectId);
+                if (!envKeys.includes('FIREBASE_CLIENT_EMAIL')) c.environment.push(firebaseClientEmail);
+                if (!envKeys.includes('FIREBASE_PRIVATE_KEY')) c.environment.push(firebasePrivateKey);
             }
             
             // Agent needs auth + chat + mongo
