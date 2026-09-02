@@ -17,14 +17,26 @@ app.use(cors({
 }))
 app.use(morgan("dev"))
 app.use(cookieParser())
-app.use("/api/auth",proxy(process.env.AUTH_SERVICE))
-app.use("/api/chat",protect,proxyWithHeader(process.env.CHAT_SERVICE))
-app.use("/api/agent",protect,proxyWithHeader(process.env.AGENT_SERVICE))
-app.use("/api/billing",protect,proxyWithHeader(process.env.BILLING_SERVICE))
+app.use("/api/auth",proxy(process.env.AUTH_SERVICE, { parseReqBody: false }))
+app.use("/api/chat",protect,proxyWithHeader(process.env.CHAT_SERVICE, { parseReqBody: false }))
+app.use("/api/agent",protect,proxyWithHeader(process.env.AGENT_SERVICE, { parseReqBody: false }))
+app.use("/api/billing",protect,proxyWithHeader(process.env.BILLING_SERVICE, { parseReqBody: false }))
 app.get("/api/me",protect,getCurrentUser)
 app.get("/",(req,res)=>{
     res.json({message:"hello from gateway v5"})
 })
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error("Global Gateway Error:", err);
+    return res.status(err.status || 500).json({ message: err.message });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error("Global Gateway Error:", err);
+    return res.status(err.status || 500).json({ message: err.message });
+});
 
 app.listen(port,()=>{
     console.log(`gateway started at ${port}`)
