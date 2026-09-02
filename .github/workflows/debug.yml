@@ -14,5 +14,5 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-    - name: Fetch ECS Events
-      run: aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].events' > events.json && cat events.json
+    - name: Fetch Gateway Logs
+      run: aws logs filter-log-events --log-group-name /ecs/sumeetai-task --log-stream-name-prefix gateway --limit 50 > logs.json && cat logs.json
