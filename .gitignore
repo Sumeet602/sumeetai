@@ -1,0 +1,11 @@
+node_modules/
+.env
+dist/
+*.log
+.DS_Store
+**/.env
+serviceAccountKey.json
+task-def*.json
+ecs-service.json
+trust-policy.json
+bucket-policy.json

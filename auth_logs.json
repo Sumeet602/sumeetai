@@ -1,0 +1,20 @@
+﻿{
+    "events": [
+        {
+            "timestamp": 1788250818759,
+            "message": "> auth@1.0.0 start",
+            "ingestionTime": 1788250823148
+        },
+        {
+            "timestamp": 1788250818759,
+            "message": "> node index.js",
+            "ingestionTime": 1788250823148
+        },
+        {
+            "timestamp": 1788250821232,
+            "message": "Connected to Mock Redis (In-Memory)",
+            "ingestionTime": 1788250823148
+        },
+        {
+            "timestamp": 1788250821236,
+            "message": 

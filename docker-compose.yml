@@ -1,0 +1,74 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+      
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+  
+  gateway:
+    build: ./backend/gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - auth
+      - chat
+      - agent
+      - billing
+    environment:
+      - AUTH_SERVICE=http://auth:8001
+      - CHAT_SERVICE=http://chat:8002
+      - AGENT_SERVICE=http://agent:8003
+      - BILLING_SERVICE=http://billing:8004
+      - FRONTEND_URL=http://localhost:5173
+    env_file:
+      - ./backend/gateway/.env
+
+  auth:
+    build: ./backend/services/auth
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    env_file:
+      - ./backend/services/auth/.env
+
+  chat:
+    build: ./backend/services/chat
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./backend/services/chat/.env
+
+  agent:
+    build: ./backend/services/agent
+    ports:
+      - "8003:8003"
+    depends_on:
+      - redis
+    env_file:
+      - ./backend/services/agent/.env
+
+  billing:
+    build: ./backend/services/billing
+    ports:
+      - "8004:8004"
+    env_file:
+      - ./backend/services/billing/.env
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_SERVER_URL=http://localhost:8000
+
+volumes:
+  mongo-data:
