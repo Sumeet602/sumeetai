@@ -1,2 +1,11 @@
-// Boilerplate for frontend/src/features/createConversation.js
-module.exports = {};
+import api from "../../utils/axios"
+
+export const createConversation=async () => {
+    try {
+        const {data}=await api.get("/api/chat/create-conversation")
+        return data
+    } catch (error) {
+       console.log(error)
+       return []
+    }
+}

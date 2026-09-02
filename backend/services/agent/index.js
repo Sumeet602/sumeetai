@@ -1,18 +1,32 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import express from 'express';
+import express from "express"
+import dotenv from "dotenv"
+import connectDb from "./config/db.js"
+import router from "./routes/agent.route.js"
+dotenv.config()
 
-import { handleAgentRequest } from './controllers/agent.controller.js';
+const port =process.env.PORT
 
-const app = express();
-const PORT = process.env.PORT || 8003;
+const app=express()
 
-app.use(express.json());
+app.use(express.json())
+app.use("/",router)
+
+app.use((err,req,res,next)=>{
+  console.log(err)
+
+  if(err.status){
+    return res.status(err.status).json(err.data)
+  }
+
+  return res.status(500).json({message:`agent error ${err}`})
+})
 
 
-// Example agent execution endpoint
-app.post('/execute', handleAgentRequest);
+app.get("/",(req,res)=>{
+    res.json({message:"hello from agent"})
+})
 
-app.listen(PORT, () => {
-    console.log(`Agent Service running on port ${PORT}`);
-});
+app.listen(port,()=>{
+    console.log(`agent started at ${port}`)
+    connectDb()
+})

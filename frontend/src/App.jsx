@@ -1,12 +1,28 @@
-import React from 'react';
-import Home from './pages/Home';
+import { signInWithPopup } from 'firebase/auth'
+import React, { useEffect } from 'react'
+import { auth, googleProvider } from '../utils/firebase'
+import api from '../utils/axios'
+import Home from './pages/Home'
+import getCurrentUser from './features/getCurrentUser'
+import { useDispatch } from 'react-redux'
+import { setUserdata } from './redux/userSlice'
 
-const App = () => {
+function App() {
+
+const dispatch=useDispatch()
+useEffect(()=>{
+  const getUser=async ()=>{
+    const data=await getCurrentUser()
+    dispatch(setUserdata(data))
+  }
+  getUser()
+},[])
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
-      <Home />
-    </div>
-  );
-};
+   <>
+   <Home/>
+   </>
+  )
+}
 
-export default App;
+export default App

@@ -13,7 +13,9 @@ services:
       - mongo-data:/data/db
   
   gateway:
-    build: ./backend/gateway
+    build:
+      context: ./backend
+      dockerfile: ./gateway/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
@@ -32,7 +34,9 @@ services:
       - ./backend/gateway/.env
 
   auth:
-    build: ./backend/services/auth
+    build:
+      context: ./backend
+      dockerfile: ./services/auth/Dockerfile
     ports:
       - "8001:8001"
     depends_on:
@@ -41,14 +45,18 @@ services:
       - ./backend/services/auth/.env
 
   chat:
-    build: ./backend/services/chat
+    build:
+      context: ./backend
+      dockerfile: ./services/chat/Dockerfile
     ports:
       - "8002:8002"
     env_file:
       - ./backend/services/chat/.env
 
   agent:
-    build: ./backend/services/agent
+    build:
+      context: ./backend
+      dockerfile: ./services/agent/Dockerfile
     ports:
       - "8003:8003"
     depends_on:
@@ -57,7 +65,9 @@ services:
       - ./backend/services/agent/.env
 
   billing:
-    build: ./backend/services/billing
+    build:
+      context: ./backend
+      dockerfile: ./services/billing/Dockerfile
     ports:
       - "8004:8004"
     env_file:

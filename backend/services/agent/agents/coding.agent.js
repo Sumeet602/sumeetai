@@ -1,31 +1,156 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { checkAgentLimit } from "../config/agentLimit.js"
+import { getModel } from "../config/llmModels.js"
+import { deductCredits } from "../utils/deductCredits.js"
 
-const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-pro",
-    maxOutputTokens: 8192,
-    temperature: 0.1 // Lower temperature for more deterministic code
-});
+export const codingAgent=async (state) => {
+try {
+   await checkAgentLimit(state.userId,"coding")
+   const intentLlm=await getModel("intent")
+   const llm=await getModel("coding")
+   const intentRes=await intentLlm.invoke(`
+    You are an intent classifier.
 
-export const codingAgentNode = async (state) => {
-    try {
-        const lastMessage = state.messages[state.messages.length - 1];
-        
-        const systemPrompt = `You are an expert coding assistant. Write clean, efficient, and well-documented code. 
-Only output the code, without any markdown formatting or conversational filler like "Here is the code". 
-Do not use triple backticks if you are returning full files.`;
+Return ONLY one of these values.
 
-        const response = await llm.invoke([
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: lastMessage.content }
-        ]);
+CODE_GENERATION
+CODE_REVIEW
+CODE_EXPLANATION
+DEBUGGING
+OPTIMIZATION
+CONVERSION
+DOCUMENTATION
 
-        return {
-            messages: [{ role: 'assistant', content: response.content }]
-        };
-    } catch (error) {
-        console.error("Coding Agent Error:", error);
-        return {
-            messages: [{ role: 'assistant', content: 'Error generating code.' }]
-        };
+User Request:
+${state.prompt}
+    `)
+    const intent=intentRes.content
+    if(intent=="CODE_GENERATION"){
+        const prompt=`
+        You are SumeetAI Coding Agent.
+
+Generate the requested project.
+
+Default stack:
+- HTML
+- CSS
+- JavaScript
+
+Use React / Next.js / Vue ONLY if explicitly requested.
+
+Rules:
+
+- Responsive
+- Modern UI
+- CSS Variables
+- Flexbox/Grid
+- Smooth Scroll
+- Hover Effects
+- Beautiful spacing
+- Single page unless user asks otherwise.
+
+IMAGES
+=========================
+
+Always use real Unsplash images.
+
+Never use placeholders.
+
+Return ONLY valid JSON.
+
+Schema:
+
+{
+  "files":[
+    {
+      "name":"index.html",
+      "content":"..."
+    },
+    {
+      "name":"style.css",
+      "content":"..."
+    },
+    {
+      "name":"script.js",
+      "content":"..."
     }
-};
+  ]
+}
+
+Rules:
+
+- Output must start with {
+- Output must end with }
+- No markdown
+- No explanation
+- No extra text
+- No \`\`\`
+- Never mention intent
+
+User Request:
+${state.prompt}
+        ` 
+        const res=await llm.invoke(prompt)
+        console.log(res)
+        const data=JSON.parse(res.content)
+        await deductCredits(state.userId,"coding")
+        
+        return {
+            ...state,
+            aiResponse:"Code Generated Successfully.",
+            artifacts:[
+                {
+                    id:Date.now(),
+                    type:"Project",
+                    files:data.files || [],
+                    title:state.prompt
+                }
+            ]
+        }
+    }
+
+    const res=await llm.invoke(`
+        The user's request is:
+
+${intent}
+
+Return Markdown only.
+
+Never generate project files.
+
+Use headings like:
+
+# Overview
+
+## Explanation
+
+## Problems
+
+## Improvements
+
+## Best Practices
+
+## Optimized Code (if needed)
+
+User Request:
+
+${state.prompt}
+        `)
+
+   const data=res.content   
+   await deductCredits(state.userId,"coding")
+   
+   return {
+    ...state,
+    aiResponse:data,
+    artifacts:[]
+   }  
+} catch (error) {
+   console.log(error)
+         return {
+            ...state,
+            aiResponse:error?.data?.message || "failed to generate code",
+            artifacts:[]
+        }
+}
+  
+}

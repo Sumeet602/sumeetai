@@ -1,62 +1,79 @@
-import { QdrantVectorStore } from "@langchain/qdrant";
-import { ChatAnthropic } from "@langchain/anthropic";
-import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
-import { createRetrievalChain } from "@langchain/classic/chains/retrieval";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import dotenv from 'dotenv';
-dotenv.config();
+import fs, { stat } from "fs"
+import {PDFParse} from "pdf-parse"
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
+import { vectorStore } from "../config/vectorDb.js"
+import { getModel } from "../config/llmModels.js"
+import { HumanMessage, SystemMessage } from "@langchain/core/messages"
+import { deductCredits } from "../utils/deductCredits.js"
+import { checkAgentLimit } from "../config/agentLimit.js"
+export const pdfRag=async (state)=>{
+   try {
+    await checkAgentLimit(state.userId,"pdf")
+      const buffer=fs.readFileSync(state.file.path)
+      const pdf=new PDFParse({
+        data:buffer
+      })
 
-export const pdfRagAgentNode = async (state) => {
-    const { messages } = state;
-    const lastMessage = messages[messages.length - 1].content;
+      const result=await pdf.getText()
+      const text=result.text
 
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-        apiKey: process.env.GOOGLE_API_KEY
-    });
+      const spilliter=new RecursiveCharacterTextSplitter({
+        chunkSize:1000,
+        chunkOverlap:200
+      })
 
-    const vectorStore = await QdrantVectorStore.fromExistingCollection(
-        embeddings,
-        {
-            url: process.env.QDRANT_URL,
-            apiKey: process.env.QDRANT_API_KEY,
-            collectionName: "pdf_documents",
+      const docs=await spilliter.createDocuments([text])
+      const collectionName=`pdf-${Date.now()}`;
+      const store=await vectorStore(docs,collectionName)
+
+      const relevantDocs=await store.similaritySearch(state.prompt,5)
+      
+      const context=relevantDocs.map(d=>d.pageContent).join("\n\n")
+      
+      const llm=await getModel("pdf-rag")
+
+       const messages=[
+        new SystemMessage(`You are SumeetAI PDF Assistant.
+
+Rules:
+
+- Answer ONLY from the uploaded PDF.
+
+- Never make up information.
+
+- If the answer is not present in the PDF, reply:
+
+"I couldn't find this information in the uploaded PDF."
+
+- Use Markdown formatting.
+`),
+
+new HumanMessage(`
+    Context:${context}
+     Question:${state.prompt}
+    `)
+       ]
+
+
+      const response=await llm.invoke(messages)
+      await deductCredits(state.userId,"pdf")
+      console.log(response)
+      return {
+        ...state,
+        aiResponse:response.content
+      }
+
+
+
+   } catch (error) {
+    console.log(error)
+         return {
+            ...state,
+            aiResponse:error?.data?.message || "failed to analyze pdf"
         }
-    );
+   }finally{
+         fs.unlinkSync(state.file.path)
+   }
 
-    const retriever = vectorStore.asRetriever();
 
-    const llm = new ChatAnthropic({
-        anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-        model: "claude-3-5-sonnet-20240620",
-    });
-
-    const prompt = PromptTemplate.fromTemplate(`
-    Use the following pieces of context to answer the question at the end.
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    
-    {context}
-    
-    Question: {input}
-    Answer:
-    `);
-
-    const combineDocsChain = await createStuffDocumentsChain({
-        llm,
-        prompt,
-    });
-
-    const retrievalChain = await createRetrievalChain({
-        retriever,
-        combineDocsChain,
-    });
-
-    const response = await retrievalChain.invoke({
-        input: lastMessage,
-    });
-
-    return {
-        messages: [{ role: 'assistant', content: response.answer }],
-        agentType: 'pdfRag'
-    };
-};
+}

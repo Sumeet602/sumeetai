@@ -1,80 +1,73 @@
-import { razorpayInstance } from '../config/razorpay.js';
-import { plans } from '../config/plans.js';
-import Payment from '../models/payment.model.js';
-import crypto from 'crypto';
-import axios from 'axios';
-
+import axios from "axios"
+import { PLANS } from "../config/Plans.js"
+import razorpay from "../config/razorpay.js"
+import Payment from "../models/payment.model.js"
+import crypto from "crypto"
 export const createOrder = async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'];
-        const { plan } = req.body;
+        const { plan } = req.body
+        const userId = req.headers["x-user-id"]
+        const selectedPlan = PLANS[plan]
 
-        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-        if (!plans[plan]) return res.status(400).json({ error: 'Invalid plan' });
+        if (!selectedPlan) {
+            return res.status(404).json({ message: "plan not found" })
+        }
 
-        const amount = plans[plan].priceINR * 100; // Razorpay expects amount in paise
+        const order = await razorpay.orders.create({
+            amount: selectedPlan.amount * 100,
+            currency: "INR",
+            receipt: `receipt-${Date.now()}`
+        })
 
-        const options = {
-            amount,
-            currency: 'INR',
-            receipt: `receipt_${userId}_${Date.now()}`
-        };
-
-        const order = await razorpayInstance.orders.create(options);
-
-        // Save order in DB
         await Payment.create({
             userId,
-            razorpayOrderId: order.id,
-            amount: plans[plan].priceINR,
-            planPurchased: plan
-        });
+            orderId: order.id,
+            amount: selectedPlan.amount,
+            credits: selectedPlan.credits,
+            plan: selectedPlan.id,
+            currency: order.currency,
+            status: "created"
+        })
 
-        res.status(200).json(order);
+        return res.status(200).json({ order, plan: selectedPlan })
+
+
+
     } catch (error) {
-        console.error('Create Order Error:', error);
-        res.status(500).json({ error: 'Failed to create order' });
+        return res.status(500).json({ message: `create order error ${error}` })
     }
-};
+}
 
-export const verifyPayment = async (req, res) => {
+
+export const verifyPayment = async (req,res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-        
-        const sign = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSign = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'dummy_key_secret')
-            .update(sign.toString())
-            .digest("hex");
+        const {razorpay_order_id, razorpay_payment_id,razorpay_signature} = req.body
 
-        if (razorpay_signature === expectedSign) {
-            // Payment is authentic
-            const payment = await Payment.findOneAndUpdate(
-                { razorpayOrderId: razorpay_order_id },
-                { 
-                    status: 'paid', 
-                    razorpayPaymentId: razorpay_payment_id,
-                    razorpaySignature: razorpay_signature 
-                },
-                { new: true }
-            );
-            
-            // Make a request to Auth service to update user credits here.
-            try {
-                await axios.post(`${process.env.AUTH_SERVICE}/api/auth/update-credits`, {
-                    userId: payment.userId,
-                    plan: payment.planPurchased
-                });
-            } catch (err) {
-                console.error("Failed to update credits in Auth service", err);
-            }
-            
-            return res.status(200).json({ message: "Payment verified successfully" });
-        } else {
-            return res.status(400).json({ error: "Invalid signature sent!" });
-        }
+        const generateSignature=crypto
+                               .createHmac("sha256",process.env.RAZORPAY_KEY_SECRET)
+                               .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+                               .digest("hex")
+
+ if(generateSignature !== razorpay_signature){
+    return res.status(400).json({message:"Payment Verification Failed"})
+ }
+
+ const payment=await Payment.findOne({orderId:razorpay_order_id})
+
+ if(!payment){
+    return res.status(404).json({message:"Payment Not Found"})
+ }
+
+ payment.status="paid"
+ payment.paymentId=razorpay_payment_id
+ await payment.save()
+
+ const {data}=await axios.post(`${process.env.AUTH_SERVICE}/update-plan`,{userId:payment.userId,plan:payment.plan,credits:payment.credits})
+ console.log(data)
+
+ return res.status(200).json({message:"Payment Verified"})
+
     } catch (error) {
-        console.error('Verify Payment Error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+ return res.status(500).json({message:`verify payment error ${error}`})
     }
-};
+}

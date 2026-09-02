@@ -1,24 +1,20 @@
-import express from 'express';
-import dotenv from 'dotenv';
+import express from "express"
+import dotenv from "dotenv"
+import connectDb from "./config/db.js"
+import router from "./routes/billing.route.js"
 
-import connectDB from './config/db.js';
-import billingRoutes from './routes/billing.route.js';
+dotenv.config()
 
-dotenv.config();
+const port =process.env.PORT
 
-const app = express();
-const PORT = process.env.PORT || 8004;
+const app=express()
+app.use(express.json())
+app.use("/",router)
+app.get("/",(req,res)=>{
+    res.json({message:"hello from billing"})
+})
 
-// Middleware
-app.use(express.json());
-
-
-// DB Connection
-connectDB();
-
-// Routes
-app.use('/', billingRoutes);
-
-app.listen(PORT, () => {
-    console.log(`Billing Service running on port ${PORT}`);
-});
+app.listen(port,()=>{
+    console.log(`billing started at ${port}`)
+    connectDb()
+})

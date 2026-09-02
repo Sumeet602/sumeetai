@@ -1,10 +1,7 @@
-export const getMe = (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: "User not authenticated" });
-  }
-
-  return res.status(200).json({
-    success: true,
-    user: req.user,
-  });
-};
+export const getCurrentUser=async (req,res) => {
+    try {
+        return res.status(200).json(req.user)
+    } catch (error) {
+        return res.status(500).json({message:`get current user error ${error}`})
+    }
+}

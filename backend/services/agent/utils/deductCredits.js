@@ -1,14 +1,11 @@
-import axios from 'axios';
+import axios from "axios"
 
-export const deductCredits = async (userId, amount = 1) => {
+export const deductCredits=async (userId,agent)=>{
     try {
-        const response = await axios.post(`${process.env.AUTH_SERVICE || 'http://localhost:8001'}/deduct-credits`, {
-            userId,
-            amount
-        });
-        return response.data;
+       const {data}=await axios.post(`${process.env.AUTH_SERVICE}/deduct-credits`,{userId,agent})
+       return data
     } catch (error) {
-        console.error("Error deducting credits", error);
-        throw new Error("Failed to deduct credits");
+        console.log(error)
+        return null
     }
-};
+}

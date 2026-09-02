@@ -1,14 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose"
 
-const connectDB = async () => {
+const connectDb=async ()=>{
     try {
-        const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/multi-agent-ai';
-        await mongoose.connect(uri);
-        console.log('Auth Service: MongoDB Connected successfully');
+       await mongoose.connect((process.env.MONGODB_URI || process.env.MONGO_URI)) 
+       console.log("db connected")
     } catch (error) {
-        console.error('Auth Service: MongoDB connection failed:', error.message);
-        process.exit(1);
+       console.log(`db error ${error}`) 
     }
-};
+}
 
-export default connectDB;
+export default connectDb

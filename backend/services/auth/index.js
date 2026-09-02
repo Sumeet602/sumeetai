@@ -1,28 +1,19 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
+import express from "express"
+import dotenv from "dotenv"
+import connectDb from "./config/db.js"
+import router from "./routes/auth.route.js"
+dotenv.config()
 
-import connectDB from './config/db.js';
-import { initFirebase } from './config/firebase.js';
-import authRoutes from './routes/auth.route.js';
+const port =process.env.PORT
 
-dotenv.config();
+const app=express()
+app.use(express.json())
+app.use("/",router)
+app.get("/",(req,res)=>{
+    res.json({message:"hello from auth"})
+})
 
-const app = express();
-const PORT = process.env.PORT || 8001;
-
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
-
-
-// Initialize Connections
-connectDB();
-initFirebase();
-
-// Routes
-app.use('/', authRoutes);
-
-app.listen(PORT, () => {
-    console.log(`Auth Service running on port ${PORT}`);
-});
+app.listen(port,()=>{
+    console.log(`auth started at ${port}`)
+    connectDb()
+})

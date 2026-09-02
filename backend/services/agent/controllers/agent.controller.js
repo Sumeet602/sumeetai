@@ -1,29 +1,34 @@
-import { runAgentGraph } from '../graph/graph.js';
-import { deductCredits } from '../utils/deductCredits.js';
+import axios from "axios"
+import { graph } from "../graph/graph.js"
+import { addMessage } from "../config/memory.js"
+import redis from "../../../shared/redis/redis.js"
 
-export const handleAgentRequest = async (req, res) => {
+
+export const agent=async (req,res,next) => {
     try {
-        const userId = req.headers['x-user-id'];
-        const { prompt, agentType } = req.body;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        // 1. Check user credits here
-        try {
-            await deductCredits(userId, 1);
-        } catch (error) {
-            return res.status(402).json({ error: 'Insufficient credits or billing error' });
-        }
-
-        // 2. Run LangGraph Workflow
-        const result = await runAgentGraph(prompt, agentType);
-
-        // 3. Return response
-        res.status(200).json({ response: result });
+        const {prompt,conversationId,agent}=req.body
+        const file=req.file
+        console.log("file",file)
+        const userId=req.headers["x-user-id"]
+        await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
+            conversationId,role:"user",content:prompt
+        })
+        const result=await graph.invoke({
+            prompt,conversationId,agent,userId,file
+        })
+        console.log("result",result)
+       await addMessage(conversationId,"user",prompt)
+        await addMessage(conversationId,"assistant",result.aiResponse)
+        await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
+            conversationId,role:"assistant",content:result?.aiResponse,images:result?.images,artifacts:result?.artifacts
+        })
+        return res.status(200).json({
+            answer:result?.aiResponse,
+            images:result?.images,
+            artifacts:result?.artifacts
+        })
+       
     } catch (error) {
-        console.error('Agent Execution Error:', error);
-        res.status(500).json({ error: 'Agent failed to process request' });
+       next(error)
     }
-};
+}

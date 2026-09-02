@@ -1,139 +1,146 @@
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Check } from "lucide-react";
-import { createOrder, verifyPayment } from "../utils/api.js";
-import { useDispatch, useSelector } from "react-redux";
-import { setUser } from "../store/userSlice.js";
+import React from 'react'
+import { AnimatePresence, motion } from "motion/react"
+import { Crown, X } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { createOrder } from '../features/createOrder'
+import { verifyPayment } from '../features/verifyPayment'
+function BillingDrawer({ open, onClose }) {
 
-const BillingDrawer = ({ isOpen, onClose }) => {
-  const user = useSelector(state => state.user.userData);
-  const dispatch = useDispatch();
+    const { userData } = useSelector(state => state.user)
 
-  const plans = [
-    { name: "Starter", price: 999, credits: 500, features: ["500 Agent Credits", "Standard Support"] },
-    { name: "Pro", price: 1999, credits: 1000, features: ["1000 Agent Credits", "Priority Support", "Fast Generation"] }
-  ];
+    const handleUpgrade = async (plan) => {
+        try {
+            const data = await createOrder(plan)
+            const options = {
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+                amount: data?.order?.amount,
+                currency: data?.order?.currency,
+                name: "SumeetAI",
+                description: `${data?.plan?.name} Plan`,
+                order_id: data?.order?.id,
+                handler: async (response) => {
+                    try {
+                        const data = await verifyPayment(response)
+                        console.log(data)
+                    } catch (error) {
+                        console.log(error)
+                    }
+                },
+                theme: {
+                    color: "#4F46E5"
+                }
+            }
 
-  const handleUpgrade = async (plan) => {
-    try {
-      // 1. Create order
-      const orderRes = await createOrder(plan.price, plan.name);
-      if (!orderRes.data.success) throw new Error("Failed to create order");
-      
-      const options = {
-        key: "rzp_test_fallback", // Mock Razorpay key
-        amount: plan.price * 100,
-        currency: "INR",
-        name: "SumeetAI",
-        description: `Upgrade to ${plan.name} Plan`,
-        order_id: orderRes.data.order.id,
-        handler: async function (response) {
-          // 2. Verify Payment
-          const verifyRes = await verifyPayment({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-            plan: plan.name
-          });
-          
-          if (verifyRes.data.success) {
-            alert("Payment Successful!");
-            // Optimistic update
-            dispatch(setUser({ ...user, plan: plan.name, credits: plan.credits, totalCredits: plan.credits }));
-            onClose();
-          }
-        },
-        prefill: {
-          name: user?.name,
-          email: user?.email,
+            const razorpay = new window.Razorpay(options)
+            razorpay.open()
+        } catch (error) {
+            console.log(error)
         }
-      };
-      
-      const rzp1 = new window.Razorpay(options);
-      rzp1.open();
-    } catch (error) {
-      console.error(error);
-      alert("Payment failed");
     }
-  };
+    return (
+        <AnimatePresence>
+            {open && <> <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: .5 }}
+                exit={{ opacity: 0 }}
+                onClick={onClose}
+                className="fixed inset-0 bg-black z-40"
+            />
+                <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ duration: .25 }}
+                    className="fixed right-0 top-0 z-50 h-screen w-[380px] bg-[#0f1117] border-l border-white/10 shadow-2xl flex flex-col"
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 z-40"
-          />
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-[400px] bg-zinc-900 border-l border-zinc-800 z-50 flex flex-col shadow-2xl"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-semibold text-white">Billing & Plans</h2>
-              <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-6 flex-1 overflow-y-auto">
-              <div className="mb-8 p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
-                <h3 className="text-zinc-300 text-sm font-medium mb-2">Current Plan</h3>
-                <div className="text-2xl font-bold text-white mb-1">{user?.plan || "Free"}</div>
-                <div className="flex justify-between text-sm text-zinc-400 mb-2 mt-4">
-                  <span>Credits remaining</span>
-                  <span>{user?.credits || 0} / {user?.totalCredits || 100}</span>
-                </div>
-                <div className="w-full bg-zinc-700 rounded-full h-2">
-                  <div 
-                    className="bg-indigo-500 h-2 rounded-full" 
-                    style={{ width: `${Math.min(100, Math.max(0, ((user?.credits || 0)/(user?.totalCredits || 100))*100))}%` }}
-                  />
-                </div>
-              </div>
+                >
 
-              <div className="space-y-4">
-                <h3 className="text-white font-medium mb-4">Upgrade Plan</h3>
-                {plans.map(plan => (
-                  <div key={plan.name} className="p-5 border border-zinc-700 rounded-2xl hover:border-indigo-500 transition-colors cursor-pointer group">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-white group-hover:text-indigo-400">{plan.name}</h4>
-                        <p className="text-sm text-zinc-400">{plan.credits} Credits/mo</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xl font-bold text-white">₹{plan.price}</span>
-                      </div>
+                    <div className='flex items-center justify-between p-5 border-b border-white/10'>
+                        <div>
+                            <div className='text-white text-lg font-semibold'>
+                                Billing
+                            </div>
+                            <div className='text-slate-400 text-sm'>
+                                Plans & Credits
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"
+                        >
+                            <X size={18} className="text-slate-300" />
+                        </button>
                     </div>
-                    <ul className="space-y-2 mb-6">
-                      {plan.features.map(f => (
-                        <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                          <Check size={16} className="text-emerald-400" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <button 
-                      onClick={() => handleUpgrade(plan)}
-                      className="w-full py-2.5 rounded-xl bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
-                    >
-                      Upgrade to {plan.name}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-};
 
-export default BillingDrawer;
+
+                    <div className='p-5'>
+                        <div className='rounded-xl bg-white/[0.04] border border-white/10 p-4'>
+                            <div className='flex justify-between items-center'>
+                                <div>
+                                    <p className='text-slate-400 text-sm'>
+                                        Current Plan
+                                    </p>
+                                    <h3 className='text-white text-xl font-bold'>
+                                        {userData?.plan || "free"}
+                                    </h3>
+                                </div>
+                                <Crown className='text-yellow-400' />
+                            </div>
+
+                            <div className='mt-5'>
+                                <div className='flex justify-between text-xs text-slate-400 mb-2'>
+                                    <span>Credits</span>
+                                    <span>{userData.credits || 0}/{userData.totalCredits || 100}</span>
+                                </div>
+
+                                <div className='h-2 rounded-full bg-white/10 overflow-hidden'>
+                                    <div className="h-full bg-indigo-500 transition-all duration-500"
+                                        style={{
+                                            width: `${(
+                                                (userData?.credits || 0) /
+                                                (userData?.totalCredits || 1)
+                                            ) * 100
+                                                }%`
+                                        }}
+                                    />
+                                </div>
+
+
+                            </div>
+
+
+
+                        </div>
+                    </div>
+
+                    <div className='px-5 flex-1 overflow-auto space-y-4'>
+
+                        <div className='rounded-xl border border-white/10 p-4'>
+                            <h3 className='text-white font-semibold'>Starter Plan</h3>
+                            <p className='text-indigo-400 text-2xl font-bold mt-2'>₹199</p>
+                            <p className='text-slate-400 text-sm mt-1'>500 Credits</p>
+                            <button className='mt-4 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 py-2 text-white' onClick={() => handleUpgrade("starter")}>Upgrade</button>
+                        </div>
+                        <div className='rounded-xl border border-white/10 p-4'>
+                            <h3 className='text-white font-semibold'>Pro Plan</h3>
+                            <p className='text-indigo-400 text-2xl font-bold mt-2'>₹499</p>
+                            <p className='text-slate-400 text-sm mt-1'>1000 Credits</p>
+                            <button className='mt-4 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 py-2 text-white' onClick={() => handleUpgrade("pro")}>Upgrade</button>
+                        </div>
+                    </div>
+
+
+
+
+
+
+
+
+                </motion.div>
+            </>
+            }
+
+        </AnimatePresence>
+    )
+}
+
+export default BillingDrawer
+
