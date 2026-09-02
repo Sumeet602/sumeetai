@@ -14,5 +14,8 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-    - name: Fetch Gateway Logs
-      run: aws logs filter-log-events --log-group-name /ecs/sumeetai-task --log-stream-name-prefix gateway --limit 50 > logs.json && cat logs.json
+    - name: List ECR repos and task def containers
+      run: |
+        echo "=== ECR REPOS ===" && aws ecr describe-repositories --query "repositories[].repositoryName" --output text
+        echo "=== TASK DEF CONTAINERS ===" && aws ecs describe-task-definition --task-definition sumeetai-task --query "taskDefinition.containerDefinitions[].{name:name,image:image}" --output table
+        echo "=== GATEWAY ENV VARS ===" && aws ecs describe-task-definition --task-definition sumeetai-task --query "taskDefinition.containerDefinitions[?name=='gateway'].environment" --output json

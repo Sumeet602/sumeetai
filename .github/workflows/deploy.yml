@@ -7,11 +7,8 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: gateway
   ECS_SERVICE: sumeetai-service
   ECS_CLUSTER: sumeetai-cluster
-  ECS_TASK_DEFINITION: task-def-ap-south-1.json
-  CONTAINER_NAME: gateway
 
 jobs:
   deploy:
@@ -45,6 +42,17 @@ jobs:
         docker push $ECR_REGISTRY/gateway:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/gateway:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    - name: Build, tag, and push auth image to Amazon ECR
+      id: build-auth
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      working-directory: ./backend
+      run: |
+        docker build -f ./services/auth/Dockerfile -t $ECR_REGISTRY/auth-service:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/auth-service:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/auth-service:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
     - name: Build, tag, and push agent image to Amazon ECR
       id: build-agent
       env:
@@ -68,6 +76,8 @@ jobs:
         const redisUrl = { name: "REDIS_URL", value: "redis://default:5oEqyh8TDuUCpBC6BfzZXsGTNUgLwiOL@sea-fog-meadow-85620.db.redis.io:18023" };
         const authService = { name: "AUTH_SERVICE", value: "http://localhost:8001" };
         const chatService = { name: "CHAT_SERVICE", value: "http://localhost:8002" };
+        const agentService = { name: "AGENT_SERVICE", value: "http://localhost:8003" };
+        const billingService = { name: "BILLING_SERVICE", value: "http://localhost:8004" };
         const mongoUri = { name: "MONGODB_URI", value: "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0" };
         const gatewayPort = { name: "PORT", value: "8000" };
         
@@ -75,10 +85,19 @@ jobs:
             if (!c.environment) c.environment = [];
             const envKeys = c.environment.map(e => e.name);
             
+            // Redis for stateful services
             if ((c.name === 'gateway' || c.name === 'auth' || c.name === 'billing') && !envKeys.includes('REDIS_URL')) c.environment.push(redisUrl);
             
-            if (c.name === 'gateway' && !envKeys.includes('PORT')) c.environment.push(gatewayPort);
+            // Gateway needs port + all internal service URLs
+            if (c.name === 'gateway') {
+                if (!envKeys.includes('PORT')) c.environment.push(gatewayPort);
+                if (!envKeys.includes('AUTH_SERVICE')) c.environment.push(authService);
+                if (!envKeys.includes('CHAT_SERVICE')) c.environment.push(chatService);
+                if (!envKeys.includes('AGENT_SERVICE')) c.environment.push(agentService);
+                if (!envKeys.includes('BILLING_SERVICE')) c.environment.push(billingService);
+            }
             
+            // Agent needs auth + chat + mongo
             if (c.name === 'agent') {
                 if (!envKeys.includes('AUTH_SERVICE')) c.environment.push(authService);
                 if (!envKeys.includes('CHAT_SERVICE')) c.environment.push(chatService);
@@ -98,18 +117,26 @@ jobs:
         container-name: gateway
         image: ${{ steps.build-gateway.outputs.image }}
 
-    - name: Fill in the new agent image ID in the Amazon ECS task definition
-      id: task-def
+    - name: Fill in the new auth image ID in the Amazon ECS task definition
+      id: task-def-auth
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: ${{ steps.task-def-gateway.outputs.task-definition }}
+        container-name: auth
+        image: ${{ steps.build-auth.outputs.image }}
+
+    - name: Fill in the new agent image ID in the Amazon ECS task definition
+      id: task-def-agent
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def-auth.outputs.task-definition }}
         container-name: agent
         image: ${{ steps.build-agent.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        task-definition: ${{ steps.task-def-agent.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
