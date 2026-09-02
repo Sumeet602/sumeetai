@@ -56,11 +56,19 @@ jobs:
         docker push $ECR_REGISTRY/agent-service:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/agent-service:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    - name: Download and patch task definition
+      run: |
+        aws ecs describe-task-definition --task-definition sumeetai-task --query taskDefinition > task-def.json
+        # Remove fields that prevent registering a new revision
+        jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' task-def.json > clean-task-def.json
+        # Add new environment variables to agent container
+        jq '(.containerDefinitions[] | select(.name == "agent") | .environment) += [{"name": "AUTH_SERVICE", "value": "http://localhost:8001"}, {"name": "CHAT_SERVICE", "value": "http://localhost:8002"}, {"name": "MONGODB_URI", "value": "mongodb+srv://goswamisumeet2004_db_user:42ZYUAZEgeRlFqPM@cluster0.gcfbqwx.mongodb.net/?appName=Cluster0"}]' clean-task-def.json > final-task-def.json
+
     - name: Fill in the new gateway image ID in the Amazon ECS task definition
       id: task-def-gateway
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        task-definition: final-task-def.json
         container-name: gateway
         image: ${{ steps.build-gateway.outputs.image }}
 
