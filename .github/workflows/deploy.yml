@@ -64,6 +64,28 @@ jobs:
         docker push $ECR_REGISTRY/agent-service:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/agent-service:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    - name: Build, tag, and push chat image to Amazon ECR
+      id: build-chat
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      working-directory: ./backend
+      run: |
+        docker build -f ./services/chat/Dockerfile -t $ECR_REGISTRY/chat-service:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/chat-service:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/chat-service:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Build, tag, and push billing image to Amazon ECR
+      id: build-billing
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      working-directory: ./backend
+      run: |
+        docker build -f ./services/billing/Dockerfile -t $ECR_REGISTRY/billing-service:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/billing-service:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/billing-service:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
     - name: Download and patch task definition
       run: |
         aws ecs describe-task-definition --task-definition sumeetai-task --query taskDefinition > task-def.json
@@ -143,10 +165,26 @@ jobs:
         container-name: agent
         image: ${{ steps.build-agent.outputs.image }}
 
+    - name: Fill in the new chat image ID in the Amazon ECS task definition
+      id: task-def-chat
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def-agent.outputs.task-definition }}
+        container-name: chat
+        image: ${{ steps.build-chat.outputs.image }}
+
+    - name: Fill in the new billing image ID in the Amazon ECS task definition
+      id: task-def-billing
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def-chat.outputs.task-definition }}
+        container-name: billing
+        image: ${{ steps.build-billing.outputs.image }}
+
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        task-definition: ${{ steps.task-def-agent.outputs.task-definition }}
+        task-definition: ${{ steps.task-def-billing.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
