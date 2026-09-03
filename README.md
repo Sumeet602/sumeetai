@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/src/assets/hero.png" alt="SumeetAI" width="100%" />
+  <img src="frontend/src/assets/hero.png" alt="SumeetAI" width="560" />
 
   # 🤖 SumeetAI — Multi-Agent AI Studio
 
