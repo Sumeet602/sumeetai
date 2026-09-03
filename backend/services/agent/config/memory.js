@@ -1,30 +1,42 @@
 import redis from "../../../shared/redis/redis.js"
 import { getMessages } from "../utils/getMessages.js"
-export const getMemory=async (conversationId)=>{
-    const key=`messages-${conversationId}`
-    const cached=await redis.get(key)
-    if(cached){
-        return JSON.parse(cached)
+
+const KEY = (conversationId) => `messages-${conversationId}`
+const TTL = 24 * 60 * 60
+const MAX = 20
+
+const readList = (raw) => {
+    if (!raw) return null
+    try {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : null
+    } catch {
+        return null
     }
-    
-    const messages=await getMessages(conversationId)
-    await redis.set(key,JSON.stringify(messages),"EX",24*60*60)
-    
+}
+
+export const getMemory = async (conversationId) => {
+    const key = KEY(conversationId)
+
+    const cached = readList(await redis.get(key))
+    if (cached) return cached
+
+    // Cache miss (or poisoned/non-array cache) -> rebuild from the chat service.
+    const fromDb = await getMessages(conversationId)
+    const messages = Array.isArray(fromDb)
+        ? fromDb.map((m) => ({ role: m.role, content: m.content }))
+        : []
+
+    await redis.set(key, JSON.stringify(messages), "EX", TTL)
     return messages
 }
 
-export const addMessage=async (conversationId,role,content)=>{
-     const key=`messages-${conversationId}`
-     const rawMessages=await redis.get(key)
-     const messages=rawMessages?JSON.parse(rawMessages):[]
-     messages.push({
-        role,content
-     })
+export const addMessage = async (conversationId, role, content) => {
+    const key = KEY(conversationId)
 
-     if(messages.length>20){
-        messages.shift()
-     }
+    const messages = readList(await redis.get(key)) || []
+    messages.push({ role, content })
 
-     await redis.set(key,JSON.stringify(messages))
+    const trimmed = messages.length > MAX ? messages.slice(-MAX) : messages
+    await redis.set(key, JSON.stringify(trimmed), "EX", TTL)
 }
-

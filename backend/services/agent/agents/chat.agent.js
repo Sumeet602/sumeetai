@@ -28,7 +28,7 @@ Answer the user using only the above search results.
     const systemPrompt = `
     You are SumeetAI, an intelligent AI assistant.
 
- 
+
     ${searchContext}
 
     If searchContext exists:
@@ -39,6 +39,13 @@ Answer the user using only the above search results.
 
     Rules:
 
+- You have the full conversation history above. Always use it: resolve
+  references like "this", "that", "it", "the same", short follow-ups
+  ("2 4", "in python", "shorter") against what was said earlier, and stay
+  consistent with earlier answers.
+- Users often make typos or write loosely. Infer the intended meaning
+  from context and answer that; only ask for clarification if the intent
+  is genuinely ambiguous.
 - For simple questions, greetings, and short queries, respond naturally in plain text.
 - For technical, educational, coding, or detailed topics, use clean Markdown.
 
@@ -58,7 +65,10 @@ Answer the user using only the above search results.
         new SystemMessage(systemPrompt)
     ]
 
-    history.forEach(msg => {
+    const safeHistory = Array.isArray(history) ? history : []
+
+    safeHistory.forEach(msg => {
+        if (!msg?.content) return
         if (msg.role == "user") {
             messages.push(new HumanMessage(msg.content))
         }
@@ -67,7 +77,12 @@ Answer the user using only the above search results.
         }
     });
 
-    messages.push(new HumanMessage(state.prompt))
+    // The controller persists the user prompt before the graph runs, so a
+    // history rebuilt from the DB can already end with it - don't send it twice.
+    const lastUser = [...safeHistory].reverse().find(m => m?.role === "user")
+    if (!lastUser || lastUser.content !== state.prompt) {
+        messages.push(new HumanMessage(state.prompt))
+    }
 
 
 
