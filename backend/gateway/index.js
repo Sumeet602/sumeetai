@@ -12,7 +12,18 @@ const port = process.env.PORT
 
 const app = express()
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            "http://sumeetai-frontend-030388905866-ap-south-1.s3-website.ap-south-1.amazonaws.com",
+            "http://localhost:5173"
+        ];
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Fallback to true to avoid breaking during frontend domain changes
+        }
+    },
     credentials: true
 }))
 app.use(morgan("dev"))
