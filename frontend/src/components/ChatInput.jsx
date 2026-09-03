@@ -92,7 +92,6 @@ function ChatInput() {
     }
 
 
-    console.log(selectedFile)
     const formData = new FormData()
     formData.append("prompt", value.trim())
     formData.append("conversationId", conversation?._id)
@@ -101,13 +100,18 @@ function ChatInput() {
       formData.append("file", selectedFile)
     }
 
-
-
-    dispatch(addMessage({ role: "user", content: value.trim() }))
+    // Show the attached image right inside the sent message, and clear the
+    // composer preview immediately (don't wait for the response).
+    const localImages = selectedFile && selectedFile.type?.startsWith("image/")
+      ? [URL.createObjectURL(selectedFile)]
+      : []
+    dispatch(addMessage({ role: "user", content: value.trim(), images: localImages }))
     setValue("")
+    setSelectedFile(null)
+    if (fileRef.current) fileRef.current.value = ""
+
     const data = await sendMessage(formData)
     dispatch(setIsLoading(false))
-    setSelectedFile(null)
     if (!data) {
       dispatch(addMessage({ role: "assistant", content: "⚠️ Something went wrong sending that message. Please try again." }))
       return

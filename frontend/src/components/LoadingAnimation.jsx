@@ -2,12 +2,27 @@ import React, { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from "motion/react"
 function LoadingAnimation() {
 
-    const Thinking_Lables = ["Thinking", "Analyzing", "Reasoning", "Generating"]
-    const [labelIndex, setLabelIndex] = useState(0)
+    const Thinking_Lables = [
+        "Thinking", "Pondering", "Ruminating", "Percolating", "Noodling",
+        "Marinating", "Mulling it over", "Cogitating", "Contemplating", "Puzzling",
+        "Brewing", "Conjuring", "Simmering", "Deliberating", "Synthesizing",
+        "Untangling", "Formulating", "Crunching numbers", "Churning", "Wrangling",
+        "Finagling", "Spelunking", "Vibing", "Tinkering", "Scheming",
+        "Concocting", "Musing", "Reasoning", "Analyzing", "Generating",
+        "Distilling", "Incubating", "Orchestrating", "Calibrating", "Whirring",
+        "Herding electrons", "Consulting the oracle", "Connecting the dots",
+        "Summoning wisdom", "Chasing the idea", "Doing the thing", "Percolating harder",
+        "Rolling up sleeves", "Sharpening pencils", "Warming up the hamsters"
+    ]
+    const [labelIndex, setLabelIndex] = useState(() => Math.floor(Math.random() * Thinking_Lables.length))
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setLabelIndex((prev) => (prev + 1) % Thinking_Lables.length)
+            setLabelIndex((prev) => {
+                let next = Math.floor(Math.random() * Thinking_Lables.length)
+                if (next === prev) next = (next + 1) % Thinking_Lables.length
+                return next
+            })
         }, 1800)
         return () => clearInterval(interval)
     }, [])

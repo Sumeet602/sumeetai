@@ -32,7 +32,7 @@ function MessageBubble({ role, content, images }) {
 
 
         {images.length > 0 && (
-          <div className='flex flex-wrap gap-3 mt-4'>
+          <div className={`flex flex-wrap gap-3 ${content ? "mb-2.5" : ""}`}>
             {images.map((img, i) => (
               <img
                 key={i}
@@ -40,7 +40,8 @@ function MessageBubble({ role, content, images }) {
                 onClick={() => setLightBox(img)}
                 loading="lazy"
                 onError={(e) => e.currentTarget.remove()}
-                className="w-40 h-28 rounded-xl object-cover border border-white/10 cursor-zoom-in hover:opacity-90 transition"
+                title="Click to view"
+                className="w-44 h-32 rounded-xl object-cover border border-white/15 cursor-zoom-in hover:opacity-90 transition"
 
               />
             ))}
