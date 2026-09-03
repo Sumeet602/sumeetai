@@ -1,5 +1,5 @@
 import axios from "axios"
-import { PLANS } from "../config/Plans.js"
+import { PLANS } from "../config/plans.js"
 import razorpay from "../config/razorpay.js"
 import Payment from "../models/payment.model.js"
 import crypto from "crypto"

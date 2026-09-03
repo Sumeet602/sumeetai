@@ -4,6 +4,7 @@ import api from '../../utils/axios'
 async function logOut() {
 try {
     const {data}=await api.get("/api/auth/logout")
+    localStorage.removeItem("session");
     console.log(data)
 } catch (error) {
     console.log(error)

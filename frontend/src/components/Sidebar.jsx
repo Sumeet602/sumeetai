@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { addConversation, setConversations, setSelectedConversation } from '../redux/conversationSlice'
 
 import { createConversation } from '../features/createConversation'
-import logOut from '../features/logOut'
+import logOut from '../features/logout'
 import { setUserdata } from '../redux/userSlice'
 import BillingDrawer from './BillingDrawer'
 function SideBar() {
