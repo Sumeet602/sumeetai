@@ -57,8 +57,20 @@ export const login = async (req, res) => {
 
 export const logOut = async (req, res) => {
     try {
+        const authHeader = req.headers.authorization
         const sessionId = req.cookies?.session
-        await redis.del(`session-${sessionId}`)
+            || (authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null)
+
+        if (sessionId) {
+            const raw = await redis.get(`session-${sessionId}`)
+            await redis.del(`session-${sessionId}`)
+            if (raw) {
+                try {
+                    const { userId } = JSON.parse(raw)
+                    if (userId) await redis.del(`user-session-${userId}`)
+                } catch { /* ignore */ }
+            }
+        }
 
         res.clearCookie("session")
         return res.status(200).json({ message: "logout successfully" })
