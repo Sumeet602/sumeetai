@@ -49,7 +49,8 @@ function ChatInput() {
 
   const toggleMic = () => {
     if (!recognitionRef.current) {
-      alert("speech recognition not supported")
+      alert("Voice input needs a secure (HTTPS) connection and a supported browser (Chrome/Edge).")
+      return
     }
     if (listening) {
       recognitionRef.current.stop()
@@ -74,6 +75,11 @@ function ChatInput() {
     if (!conversation) {
       dispatch(setMessages([]))
       const conv = await createConversation()
+      if (!conv || !conv._id) {
+        dispatch(setIsLoading(false))
+        dispatch(addMessage({ role: "assistant", content: "⚠️ Couldn't start a conversation. Please check your connection and try again." }))
+        return
+      }
       dispatch(setSelectedConversation(conv))
 
       dispatch(addConversation(conv))
@@ -102,6 +108,10 @@ function ChatInput() {
     const data = await sendMessage(formData)
     dispatch(setIsLoading(false))
     setSelectedFile(null)
+    if (!data) {
+      dispatch(addMessage({ role: "assistant", content: "⚠️ Something went wrong sending that message. Please try again." }))
+      return
+    }
     dispatch(setArtifacts(data.artifacts || []))
     dispatch(addMessage({ role: "assistant", content: data?.answer, images: data?.images }))
     console.log(data)
