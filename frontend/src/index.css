@@ -1,1 +1,43 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0d0f14;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Stop iOS Safari from zooming when focusing the composer on small screens */
+@media (max-width: 640px) {
+  textarea,
+  input,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Never let a stray wide element cause horizontal page scroll on mobile */
+#root {
+  overflow-x: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

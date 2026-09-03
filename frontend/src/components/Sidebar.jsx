@@ -44,13 +44,14 @@ function SideBar() {
     if (collapsed) {
         return (
             <div className='hidden lg:flex flex-col items-center w-[56px] h-screen bg-[#0d0f14] border-r border-white/[0.06] py-4 gap-1 shrink-0'>
-                <button className='flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer mb-1'
+                <button aria-label="Expand sidebar" className='flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer mb-1'
                     onClick={() => setCollapsed(false)}
                 >
                     <PanelRight />
                 </button>
 
                 <button
+                    aria-label="New chat"
                     className='flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer '
                     onClick={handleNewChat}
                 >
@@ -105,8 +106,8 @@ function SideBar() {
     return (
         <>
          
-       <button className='lg:hidden fixed top-3.5 left-4 z-50 flex items-center justify-center w-8 h-8 rounded-lg bg-[#0d0f14] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors duration-150 cursor-pointer' onClick={()=>setMobileOpen(true)}>
-            <Menu size={14}/>
+       <button aria-label="Open menu" className='lg:hidden fixed top-3 left-3 z-50 flex items-center justify-center w-9 h-9 rounded-lg bg-[#0d0f14] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors duration-150 cursor-pointer' onClick={()=>setMobileOpen(true)}>
+            <Menu size={16}/>
          </button>
 
          {mobileOpen && <div onClick={()=>setMobileOpen(false)} className='lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm'/>}
@@ -114,7 +115,7 @@ function SideBar() {
 
 
         <div className={` fixed lg:static inset-y-0 left-0 z-50
-        w-[270px] h-screen shrink-0
+        w-[86vw] max-w-[280px] lg:w-[270px] h-[100dvh] lg:h-screen shrink-0
         bg-[#0d0f14] border-r border-white/[0.06]
         transition-transform duration-250
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -131,16 +132,16 @@ function SideBar() {
                         <PanelLeftIcon />
                     </div>
 
-                    <button  onClick={() => setMobileOpen(false)}
-          className="lg:hidden flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer"
+                    <button aria-label="Close menu" onClick={() => setMobileOpen(false)}
+          className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer shrink-0"
 >
                         <X/>
                     </button>
-                    <span className='text-[16px] font-semibold text-slate-100 tracking-tight flex-1'>
+                    <span className='text-[16px] font-semibold text-slate-100 tracking-tight flex-1 min-w-0 truncate'>
                         SumeetAI
                     </span>
-                    <span className='text-[10px] font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full tracking-wide'>{userData?.plan || "free"}</span>
-                    <button className='flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer'
+                    <span className='text-[10px] font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full tracking-wide shrink-0'>{userData?.plan || "free"}</span>
+                    <button aria-label="New chat" className='flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer shrink-0'
                         onClick={handleNewChat}>
                         <PenSquare size={14} />
                     </button>
@@ -217,12 +218,13 @@ function SideBar() {
                                 <p className='text-[11px] text-slate-600 mt-px'>{`${userData?.plan}` || "free plan"} </p>
                             </div>
                             <div className='flex gap-1'>
-                                <button 
+                                <button
+                                aria-label="Billing and credits"
                                 onClick={()=>setShowBilling(true)}
-                                className='flex items-center justify-center w-7 h-7 rounded-[7px] border-none bg-transparent text-yellow-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150'>
+                                className='flex items-center justify-center w-8 h-8 rounded-[7px] border-none bg-transparent text-yellow-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150'>
                                     <Coins size={16} />
                                 </button>
-                                <button className='flex items-center justify-center w-7 h-7 rounded-[7px] border-none bg-transparent text-slate-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150'
+                                <button aria-label="Log out" className='flex items-center justify-center w-8 h-8 rounded-[7px] border-none bg-transparent text-slate-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150'
                                     onClick={() => {
                                         logOut();
                                         dispatch(setUserdata(null))

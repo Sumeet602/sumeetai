@@ -167,10 +167,10 @@ function ChatInput() {
   ]
 
   return (
-    <div className='w-full overflow-hidden px-3 md:px-5 py-4 border-t border-white/[0.06] bg-[#0d0f14]'>
-      <div className='flex flex-col gap-2 bg-white/[0.03] border border-white/[0.07] rounded-2xl px-4 pt-3.5 pb-3'>
+    <div className='w-full overflow-hidden px-2 sm:px-5 py-3 sm:py-4 border-t border-white/[0.06] bg-[#0d0f14]'>
+      <div className='flex flex-col gap-2 bg-white/[0.03] border border-white/[0.07] rounded-2xl px-3 sm:px-4 pt-3 sm:pt-3.5 pb-3'>
 
-        <div className='flex w-[80%] gap-2 pr-2 flex-wrap'>
+        <div className='flex w-full gap-1.5 sm:gap-2 flex-wrap'>
           {agents.map((agent) => {
             const isActive = selectedAgent === agent.label
             const Icon = agent.icon
@@ -184,8 +184,7 @@ function ChatInput() {
             inline-flex
             items-center
             gap-1.5
-            px-3
-            py-2
+            px-2.5 py-1.5 sm:px-3 sm:py-2
             rounded-full
             text-xs
             font-medium
@@ -216,25 +215,22 @@ function ChatInput() {
         {
           selectedFile && <div className='my-3'>
 
-            <div className='inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2'>
+            <div className='flex max-w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2'>
               {
-                selectedFile?.type === "application/pdf" ? <FileText size={16}
-
-                  className="text-red-400"
-                /> : selectedFile.type.startsWith("image/") && <img src={URL.createObjectURL(selectedFile)} className="h-10 w-10 rounded-xl object-cover mt-3"
-                />
+                selectedFile?.type === "application/pdf" ? <FileText size={16} className="text-red-400 shrink-0" />
+                  : selectedFile.type.startsWith("image/") && <img src={URL.createObjectURL(selectedFile)} alt="attachment preview" className="h-10 w-10 rounded-xl object-cover shrink-0" />
               }
 
-              <div>
-                <p className='text-xs text-white'>
+              <div className='min-w-0'>
+                <p className='text-xs text-white truncate'>
                   {selectedFile?.name}
                 </p>
                 <p className='text-[10px] text-slate-500'>
-                  {Math.ceil(selectedFile.size)}KB
+                  {Math.max(1, Math.ceil(selectedFile.size / 1024))} KB
                 </p>
 
               </div>
-              <button className='ml-2' onClick={() => { setSelectedFile(null); fileRef.current.value = "" }}><X size={14} className='text-slate-500 hover:text-white' /></button>
+              <button aria-label="Remove attachment" className='ml-auto shrink-0' onClick={() => { setSelectedFile(null); if (fileRef.current) fileRef.current.value = "" }}><X size={14} className='text-slate-500 hover:text-white' /></button>
             </div>
 
 
@@ -267,19 +263,22 @@ function ChatInput() {
               }
             }} />
 
-            <button className='flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-150 bg-transparent cursor-pointer' onClick={() => fileRef.current.click()}>
+            <button aria-label="Attach a PDF or image" className='flex items-center justify-center w-9 h-9 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-150 bg-transparent cursor-pointer' onClick={() => fileRef.current.click()}>
               <Paperclip size={16} />
             </button>
             <button
               onClick={toggleMic}
-              className={`flex items-center justify-center w-8 h-8 rounded-lg  transition-all duration-150 cursor-pointer ${listening ?"bg-red-500 text-white":"text-slate-600 hover:bg-white/[0.05]" }`}>
-             {listening?<Mic size={16} />:<MicOff size={16}/>} 
+              aria-label={listening ? "Stop voice input" : "Start voice input"}
+              aria-pressed={listening}
+              className={`flex items-center justify-center w-9 h-9 rounded-lg  transition-all duration-150 cursor-pointer ${listening ?"bg-red-500 text-white":"text-slate-600 hover:bg-white/[0.05]" }`}>
+             {listening?<Mic size={16} />:<MicOff size={16}/>}
             </button>
           </div>
           <button
+            aria-label="Send message"
             disabled={!value && isLoading}
             onClick={handleSendMessage}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border-none cursor-pointer transition-all duration-150 ${value.trim() ? "bg-linear-to-br from-indigo-500 to-violet-700 hover:opacity-90 text-white" : "bg-white/[0.05] text-slate-600 cursor-not-allowed"}`}>
+            className={`flex items-center justify-center w-9 h-9 rounded-lg border-none cursor-pointer transition-all duration-150 ${value.trim() ? "bg-linear-to-br from-indigo-500 to-violet-700 hover:opacity-90 text-white" : "bg-white/[0.05] text-slate-600 cursor-not-allowed"}`}>
           <Send size={15} />
         </button>
       </div>

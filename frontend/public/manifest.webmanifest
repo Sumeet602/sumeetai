@@ -1,0 +1,15 @@
+{
+  "name": "SumeetAI — Multi-Agent AI Studio",
+  "short_name": "SumeetAI",
+  "description": "One chat, many specialist AI agents: search, coding, documents, slides, images, and PDF Q&A.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d0f14",
+  "theme_color": "#0d0f14",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

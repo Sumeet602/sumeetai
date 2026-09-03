@@ -8,8 +8,18 @@ function BillingDrawer({ open, onClose }) {
 
     const { userData } = useSelector(state => state.user)
 
+    const loadRazorpay = () => new Promise((resolve) => {
+        if (window.Razorpay) return resolve(true)
+        const s = document.createElement("script")
+        s.src = "https://checkout.razorpay.com/v1/checkout.js"
+        s.onload = () => resolve(true)
+        s.onerror = () => resolve(false)
+        document.body.appendChild(s)
+    })
+
     const handleUpgrade = async (plan) => {
         try {
+            await loadRazorpay()
             const data = await createOrder(plan)
             const options = {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -51,7 +61,7 @@ function BillingDrawer({ open, onClose }) {
                     animate={{ x: 0 }}
                     exit={{ x: "100%" }}
                     transition={{ duration: .25 }}
-                    className="fixed right-0 top-0 z-50 h-screen w-[380px] bg-[#0f1117] border-l border-white/10 shadow-2xl flex flex-col"
+                    className="fixed right-0 top-0 z-50 h-[100dvh] w-full max-w-[380px] bg-[#0f1117] border-l border-white/10 shadow-2xl flex flex-col"
 
                 >
 
@@ -64,7 +74,7 @@ function BillingDrawer({ open, onClose }) {
                                 Plans & Credits
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"
+                        <button onClick={onClose} aria-label="Close billing panel" className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"
                         >
                             <X size={18} className="text-slate-300" />
                         </button>

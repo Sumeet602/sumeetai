@@ -3,8 +3,47 @@ import React from 'react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+// Register only the grammars we actually surface (detectLanguage below).
+// Using PrismLight instead of Prism keeps ~300 unused language grammars
+// (~600 kB) out of the bundle.
+import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
+import css from 'react-syntax-highlighter/dist/esm/languages/prism/css'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
+import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx'
+import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python'
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
+import java from 'react-syntax-highlighter/dist/esm/languages/prism/java'
+import c from 'react-syntax-highlighter/dist/esm/languages/prism/c'
+import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
+import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql'
+import go from 'react-syntax-highlighter/dist/esm/languages/prism/go'
+import rust from 'react-syntax-highlighter/dist/esm/languages/prism/rust'
+import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml'
+
+SyntaxHighlighter.registerLanguage('html', markup)
+SyntaxHighlighter.registerLanguage('xml', markup)
+SyntaxHighlighter.registerLanguage('css', css)
+SyntaxHighlighter.registerLanguage('javascript', javascript)
+SyntaxHighlighter.registerLanguage('typescript', typescript)
+SyntaxHighlighter.registerLanguage('jsx', jsx)
+SyntaxHighlighter.registerLanguage('tsx', tsx)
+SyntaxHighlighter.registerLanguage('json', json)
+SyntaxHighlighter.registerLanguage('python', python)
+SyntaxHighlighter.registerLanguage('bash', bash)
+SyntaxHighlighter.registerLanguage('java', java)
+SyntaxHighlighter.registerLanguage('c', c)
+SyntaxHighlighter.registerLanguage('cpp', cpp)
+SyntaxHighlighter.registerLanguage('sql', sql)
+SyntaxHighlighter.registerLanguage('go', go)
+SyntaxHighlighter.registerLanguage('rust', rust)
+SyntaxHighlighter.registerLanguage('yaml', yaml)
+
 function MessageBubble({ role, content, images }) {
   const isUser = role === "user"
   const [lightBox, setLightBox] = useState(null)
@@ -125,7 +164,7 @@ function MessageBubble({ role, content, images }) {
                     <span className='uppercase text-xs text-slate-400'>
                       {language}
                     </span>
-                    <button className='flex items-center gap-1 text-xs' 
+                    <button aria-label="Copy code" className='flex items-center gap-1 text-xs'
                     onClick={() => copyCode(value)}>
                       {
                         copiedCode == value ?
@@ -185,16 +224,18 @@ function MessageBubble({ role, content, images }) {
 
       </div>
       {lightBox &&
-        <div className='fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6'>
+        <div className='fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6' onClick={() => setLightBox(null)}>
           <button
-            className='absolute top-5 right-5 text-white/80 hover:text-white bg-white/10 rounded-full p-2'
+            aria-label="Close image"
+            className='absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 rounded-full p-2'
             onClick={() => setLightBox(null)}
           >
             <X />
           </button>
           <img
             src={lightBox}
-            className="max-w-[90vw] max-h-[85vh] rounded-2xl border border-white/10 shadow-2xl object-contain"
+            alt="Attached image, full size"
+            className="max-w-[92vw] max-h-[85vh] rounded-2xl border border-white/10 shadow-2xl object-contain"
 
           />
 
